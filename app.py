@@ -20,12 +20,17 @@ def ensure_directories(base_dir, sub_dir):
         os.makedirs(sub_dir)
 
 # Record audio
-def record_audio(filename, duration=10, fs=44100):
-    st.write(f"Recording for {duration} seconds...")
-    myrecording = sd.rec(int(duration * fs), samplerate=fs, channels=2)
-    sd.wait()  # Wait until recording is finished
-    wavio.write(filename, myrecording, fs, sampwidth=2)
-    st.write(f"Recording saved as {filename}")
+def record_audio(filename, duration=10, fs=44100, device=None):
+    try:
+        st.write(f"Recording for {duration} seconds...")
+        myrecording = sd.rec(int(duration * fs), samplerate=fs, channels=2, device=device)
+        sd.wait()  # Wait until recording is finished
+        wavio.write(filename, myrecording, fs, sampwidth=2)
+        st.write(f"Recording saved as {filename}")
+        return True
+    except Exception as e:
+        st.error(f"Error recording audio: {e}")
+        return False
 
 # Transcribe and analyze sentiment using Assembly AI
 def transcribe_and_analyze_audio(file_path, assemblyai_api_key):
@@ -142,39 +147,64 @@ def read_csv(file):
     return pd.read_csv(file)
 
 # Index data using FAISS
-def index_data(data):
+def index_data(data, openai_api_key):
     vector_size = 768  # Assuming we're using embeddings of size 768
     index = faiss.IndexFlatL2(vector_size)
     
     vectors = []
     for item in data:
         # Assuming 'item' is a text that needs to be converted to a vector
-        vector = embed_text(item)  # Use your embedding function here
+        vector = embed_text(item, openai_api_key)  # Use your embedding function here
         vectors.append(vector)
     
     vectors = np.array(vectors).astype('float32')
     index.add(vectors)
     return index, vectors
 
-# Placeholder function for embedding text (replace with actual embedding code)
-def embed_text(text):
-    return np.random.rand(768).astype('float32')  # Replace with actual embedding logic
+# Function for embedding text using OpenAI
+def embed_text(text, openai_api_key):
+    openai.api_key = openai_api_key
+    response = openai.Embedding.create(
+        input=text,
+        model="text-embedding-ada-002"  # Example embedding model, adjust as needed
+    )
+    embeddings = response['data'][0]['embedding']
+    return np.array(embeddings).astype('float32')
 
 # Streamlit app
 st.title("AI-powered Requirements Gathering")
 
+# Initialize session state for API keys
+if 'openai_api_key' not in st.session_state:
+    st.session_state.openai_api_key = ''
+if 'assemblyai_api_key' not in st.session_state:
+    st.session_state.assemblyai_api_key = ''
+
 # Input fields for API keys
-openai_api_key = st.text_input("OpenAI API Key", type="password")
-assemblyai_api_key = st.text_input("Assembly AI API Key", type="password")
+st.session_state.openai_api_key = st.text_input("OpenAI API Key", type="password", value=st.session_state.openai_api_key)
+st.session_state.assemblyai_api_key = st.text_input("Assembly AI API Key", type="password", value=st.session_state.assemblyai_api_key)
 
 if st.button("Start Recording"):
     now = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"recordings/recording_{now}.wav"
-    record_audio(filename)
+    # You may need to specify the correct audio input device index here
+    device_index = 1  # Replace with a valid device index from the output of sd.query_devices()
+    if not record_audio(filename, device=device_index):
+        st.write("Please upload a compatible audio file below.")
 
-    # Transcribe and analyze the audio file
-    if assemblyai_api_key:
-        transcript_data = transcribe_and_analyze_audio(filename, assemblyai_api_key)
+# File uploader for audio files (in case recording fails)
+uploaded_audio = st.file_uploader("Upload a compatible audio file (WAV format)", type=["wav" ,"mpeg", "mp3"])
+
+if uploaded_audio is not None:
+    now = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"recordings/uploaded_{now}.wav"
+    with open(filename, "wb") as f:
+        f.write(uploaded_audio.getbuffer())
+    st.write(f"Uploaded file saved as {filename}")
+
+    # Transcribe and analyze the uploaded audio file
+    if st.session_state.assemblyai_api_key:
+        transcript_data = transcribe_and_analyze_audio(filename, st.session_state.assemblyai_api_key)
         if isinstance(transcript_data, str):  # Handle failed transcription
             st.write(transcript_data)
         else:
@@ -191,8 +221,8 @@ if st.button("Start Recording"):
             chunks = chunk_text(transcript_data['text'])
 
             # Process each chunk with OpenAI GPT-4
-            if openai_api_key:
-                responses = process_chunks(openai_api_key, chunks)
+            if st.session_state.openai_api_key:
+                responses = process_chunks(st.session_state.openai_api_key, chunks)
                 st.write("Generated Requirements:")
                 for response in responses:
                     st.write(response)
@@ -232,7 +262,23 @@ if uploaded_files:
                 st.write(f"Excel sheet {sheet_name} content saved to {excel_path}")
 
 # Best practices analysis (placeholder for your actual logic)
-def analyze_best_practices(transcript, data_files):
+def analyze_best_practices(transcript, data_files, openai_api_key):
+    # Embed transcript and data files
+    data_texts = [transcript]
+    for file in data_files:
+        if file.type == "application/pdf":
+            data_texts.append(read_pdf(file))
+        elif file.type == "text/csv":
+            df = read_csv(file)
+            data_texts.append(df.to_string())
+        elif file.type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+            data = read_excel(file)
+            for sheet_name, df in data.items():
+                data_texts.append(df.to_string())
+    
+    # Embed all texts and create FAISS index
+    index, vectors = index_data(data_texts, openai_api_key)
+    
     # Implement your best practices analysis logic here
     gaps = ["Example gap 1", "Example gap 2"]
     return gaps
@@ -243,7 +289,7 @@ if st.button("Analyze Gaps and Best Practices"):
     with open(transcript_path, 'r') as f:
         transcript = f.read()
     
-    gaps = analyze_best_practices(transcript, uploaded_files)
+    gaps = analyze_best_practices(transcript, uploaded_files, st.session_state.openai_api_key)
     st.write("Identified Gaps:")
     for gap in gaps:
         st.write(gap)
