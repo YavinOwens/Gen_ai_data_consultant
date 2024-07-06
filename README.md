@@ -90,7 +90,8 @@ This document outlines the workflow for gathering requirements using OpenAI, Ass
 
   transcriber = aai.Transcriber(api_key='your_api_key')
   transcript = transcriber.transcribe('path/to/audio/file')
-
+   ```
+  ```python
   import openai
 
    openai.api_key = 'your_api_key'
@@ -100,24 +101,21 @@ This document outlines the workflow for gathering requirements using OpenAI, Ass
        max_tokens=150
    )
    questions = response.choices[0].text.strip().split('\n')
-
-
+   ```
+   ```python
   from langchain import PromptChain
-
+   ```
    chain = PromptChain(api_key='your_api_key')
    chain.add_prompts(questions)
    chain.run()
-
-
-#### Step 4: Analyzing and Structuring Data
-- Analyze Responses: Use AI models to analyze the transcribed responses and extract key information.
-- 
+```
+```python
   analyzed_data = openai.Completion.create(
     engine="text-davinci-003",
     prompt=f"Analyze the following transcript and extract key requirements:\n{transcript['text']}",
     max_tokens=500
 )
-
+```
 
 
 
