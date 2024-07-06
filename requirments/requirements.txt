@@ -1,0 +1,9 @@
+streamlit 
+sounddevice 
+wavio 
+openai 
+requests 
+pandas 
+faiss-cpu 
+PyPDF2 
+openpyxl
