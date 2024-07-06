@@ -59,12 +59,35 @@ Improving organizational behaviour leads to enhanced performance and employee sa
 4. **Monitoring and Evaluation**: Continuously monitoring progress and making necessary adjustments.
 5. **Training and Support**: Providing training and ongoing support to ensure sustainable success.
 
-## Contact Information
-For more information or to schedule a consultation, please contact us:
 
-- **Email**: [info@genaiconsultant.com](mailto:info@genaiconsultant.com)
-- **Phone**: +1 (555) 123-4567
-- **Website**: [www.genaiconsultant.com](http://www.genaiconsultant.com)
-- **LinkedIn**: [Gen AI Data Consultant](https://www.linkedin.com/company/gen-ai-data-consultant)
+# Workflow for Requirements Gathering Using OpenAI, Assembly AI, and LangChain
 
-Thank you for considering Gen AI Data Consultant for your data and digital management needs. We look forward to partnering with you to drive your organization's success.
+## Table of Contents
+1. [Introduction](#introduction)
+2. [Tools and Technologies](#tools-and-technologies)
+3. [Workflow Steps](#workflow-steps)
+4. [Requirements Gathering Format](#requirements-gathering-format)
+5. [Detailed Table of Categories, Subcategories, and Pain Points](#detailed-table-of-categories-subcategories-and-pain-points)
+
+## Introduction
+This document outlines the workflow for gathering requirements using OpenAI, Assembly AI, and LangChain. The process involves leveraging AI to gather, analyze, and structure requirements efficiently.
+
+## Tools and Technologies
+- **OpenAI**: For generating questions and gathering insights.
+- **Assembly AI**: For transcribing and analyzing audio inputs.
+- **LangChain**: For chaining prompts and managing the interaction flow.
+
+## Workflow Steps
+
+### Step 1: Initial Setup
+- **Define Objectives**: Establish the goals of the requirements gathering session.
+- **Identify Stakeholders**: List the key stakeholders and participants.
+
+### Step 2: Gathering Requirements
+- **Audio Input**: Record conversations with stakeholders using Assembly AI for transcription.
+  ```python
+  import assemblyai as aai
+
+  transcriber = aai.Transcriber(api_key='your_api_key')
+  transcript = transcriber.transcribe('path/to/audio/file')
+
