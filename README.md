@@ -107,7 +107,7 @@ This document outlines the workflow for gathering requirements using OpenAI, Ass
 -  **Prompt Chaining**: Use LangChain to manage the flow of questions and follow-up prompts.
    ```python
   from langchain import PromptChain
-   ```
+
    chain = PromptChain(api_key='your_api_key')
    chain.add_prompts(questions)
    chain.run()
