@@ -1,4 +1,15 @@
 import os
+
+# Ensure the .streamlit directory exists
+os.makedirs(".streamlit", exist_ok=True)
+
+# Write the config.toml file
+with open(".streamlit/config.toml", "w") as f:
+    f.write("""
+[server]
+maxUploadSize = 500
+""")
+
 import time
 import streamlit as st
 import sounddevice as sd
@@ -11,6 +22,7 @@ import pandas as pd
 import faiss
 import numpy as np
 from PyPDF2 import PdfReader
+from pydub import AudioSegment
 
 # Ensure directories exist
 def ensure_directories(base_dir, sub_dir):
@@ -18,6 +30,11 @@ def ensure_directories(base_dir, sub_dir):
         os.makedirs(base_dir)
     if not os.path.exists(sub_dir):
         os.makedirs(sub_dir)
+
+# Convert audio file to MP3 format
+def convert_to_mp3(file_path, output_path):
+    audio = AudioSegment.from_file(file_path)
+    audio.export(output_path, format="mp3")
 
 # Record audio
 def record_audio(filename, duration=10, fs=44100, device=None):
@@ -193,14 +210,22 @@ if st.button("Start Recording"):
         st.write("Please upload a compatible audio file below.")
 
 # File uploader for audio files (in case recording fails)
-uploaded_audio = st.file_uploader("Upload a compatible audio file (WAV format)", type=["wav" ,"mpeg", "mp3"])
+uploaded_audio = st.file_uploader("Upload a compatible audio file (WAV format preferred, will convert others to MP3)", type=["wav", "mp3", "m4a", "flac"])
 
 if uploaded_audio is not None:
     now = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"recordings/uploaded_{now}.wav"
+    file_extension = uploaded_audio.name.split('.')[-1].lower()
+    filename = f"recordings/uploaded_{now}.{file_extension}"
     with open(filename, "wb") as f:
         f.write(uploaded_audio.getbuffer())
     st.write(f"Uploaded file saved as {filename}")
+
+    # Convert to MP3 if necessary
+    if file_extension != 'mp3':
+        mp3_filename = f"recordings/uploaded_{now}.mp3"
+        convert_to_mp3(filename, mp3_filename)
+        filename = mp3_filename
+        st.write(f"File converted to MP3 format as {filename}")
 
     # Transcribe and analyze the uploaded audio file
     if st.session_state.assemblyai_api_key:
