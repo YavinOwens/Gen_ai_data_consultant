@@ -105,15 +105,17 @@ This document outlines the workflow for gathering requirements using OpenAI, Ass
    questions = response.choices[0].text.strip().split('\n')
    ```
 -  **Prompt Chaining**: Use LangChain to manage the flow of questions and follow-up prompts.
+  
    ```python
   from langchain import PromptChain
-
    chain = PromptChain(api_key='your_api_key')
    chain.add_prompts(questions)
    chain.run()
    ```
    ### Step 4: Analyzing and Structuring Data
-- **Analyze Responses**: Use AI models to analyze the transcribed responses and extract key information.
+
+-  **Analyze Responses**: Use AI models to analyze the transcribed responses and extract key information.
+
    ```python
   analyzed_data = openai.Completion.create(
     engine="text-davinci-003",
